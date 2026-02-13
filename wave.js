@@ -196,7 +196,7 @@ function draw() {
   // 초 단위 바깥 문자
   rad += fontSize * 1.5;
   fill(sOuterColor);
-  textSize(fontSize + 40);
+  textSize(fontSize + 30);
   textStyle(BOLD);
   push();
   rotate(currentMillis * 0.001);
