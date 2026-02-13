@@ -12,8 +12,8 @@ let baseRad;
 //rgb(29, 134, 238)
 //rgb(14, 58, 179)
 const bgColor = [234, 240, 243];
-const sInnerColor = [127,210,253, 200];
-const sOuterColor = [127,210,253, 150];
+const sInnerColor = [127, 210, 253, 200];
+const sOuterColor = [127, 210, 253, 150];
 const mInnerColor = [29, 134, 238, 200];
 const mOuterColor = [29, 134, 238, 190];
 const hInnerColor = [37, 74, 176, 250];
@@ -74,13 +74,13 @@ function draw() {
   s = String(currentSecond);
 
   // 배열 생성 최적화
-  hArr = [...h, ""];
-  mArr = [...m, "", ""];
-  sArr = [...s, ""];
+  hArr = [...h, ''];
+  mArr = [...m, '', ''];
+  sArr = [...s, ''];
 
-  hTxt = [...h, " ", "H", "O", "U", "R"];
-  mTxt = [...m, " ", "M", "I", "N", "U", "T", "E"];
-  sTxt = [...s, " ", "S", "E", "C", "O", "N", "D"];
+  hTxt = [...h, ' ', 'H', 'O', 'U', 'R'];
+  mTxt = [...m, ' ', 'M', 'I', 'N', 'U', 'T', 'E'];
+  sTxt = [...s, ' ', 'S', 'E', 'C', 'O', 'N', 'D'];
 
   translate(windowWidth * 0.5, windowHeight * 0.5);
 
@@ -90,7 +90,7 @@ function draw() {
   const hourMod = currentHour % 12;
   fontSize = 6;
 
-    // 시 단위 안쪽 - 원으로 표시
+  // 시 단위 안쪽 - 원으로 표시
   fill(hInnerColor);
   noStroke();
 
@@ -99,7 +99,7 @@ function draw() {
 
   for (let i = 0; i < hourMod; i++) {
     fontSize += 1;
-    const circleSize = fontSize * 0.65;
+    const circleSize = fontSize * 0.8;
 
     const startTime = i * hourDuration;
     const endTime = (i + 1) * hourDuration;
@@ -121,9 +121,9 @@ function draw() {
   }
 
   // 시 단위 바깥 문자
-  rad += fontSize * 0.25;
+  rad += fontSize * 0.3;
   fill(hOuterColor);
-  textSize(fontSize + 4);
+  textSize(fontSize + 5);
   textStyle(BOLD);
   push();
   rotate(currentMillis * 0.001);
@@ -140,7 +140,7 @@ function draw() {
 
   for (let i = 0; i < minuteMod; i++) {
     fontSize++;
-    const circleSize = fontSize * 0.6; // 원 크기
+    const circleSize = fontSize * 0.8; // 원 크기
 
     const startTime = i * minuteDuration;
     const endTime = (i + 1) * minuteDuration;
@@ -164,7 +164,7 @@ function draw() {
   // 분 단위 바깥 문자
   rad += fontSize * 0.8;
   fill(mOuterColor);
-  textSize(fontSize + 16);
+  textSize(fontSize + 10);
   textStyle(BOLD);
   push();
   rotate(currentMillis * -0.001);
@@ -202,7 +202,7 @@ function draw() {
   // 초 단위 바깥 문자
   rad += fontSize * 1.8;
   fill(sOuterColor);
-  textSize(fontSize + 30);
+  textSize(fontSize + 20);
   textStyle(BOLD);
   push();
   rotate(currentMillis * 0.001);
@@ -237,7 +237,7 @@ function makeCircles(rad, circleSize, patternLength) {
 
 // 텍스트를 원형으로 배치하는 함수
 function makeWaves(rad, arr, gapRatio = 0.8) {
-  const txtW = textWidth("...");
+  const txtW = textWidth('...');
   const txtGap = txtW * gapRatio;
   const circleLength = TWO_PI * rad;
   const txtDumpCount = floor(circleLength / (txtGap * arr.length));
