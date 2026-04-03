@@ -55,13 +55,11 @@ function mousePressed() {
 
 // ─── 메인 루프 ───────────────────────────────────────────
 function draw() {
-  push();
   resetMatrix();
   const ratio = max(windowWidth / img.width, windowHeight / img.height);
   const iw = img.width * ratio;
   const ih = img.height * ratio;
   image(img, (windowWidth - iw) * 0.5, (windowHeight - ih) * 0.5, iw, ih);
-  pop();
 
   const now = millis();
   const curH = hour();
@@ -208,12 +206,12 @@ function drawRings(
   for (let i = 0; i < count; i++) {
     fontSize += fsStep;
     const strokeW = fontSize * strokeRatio;
-    const alpha =
+    const alp =
       elapsed >= i * blinkDur && elapsed < (i + 1) * blinkDur ? 204 : color[3];
 
     push();
     rotate(now * ROTATE_SPEED * rotDir);
-    stroke(color[0], color[1], color[2], alpha);
+    stroke(color[0], color[1], color[2], alp);
     strokeWeight(strokeW);
     circle(0, 0, rad * 2);
     pop();
