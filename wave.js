@@ -1,29 +1,41 @@
-let h, m, s;
-let hArr, mArr, sArr;
-let hTxt, mTxt, sTxt;
-let fontSize = 10;
-let radius;
-let baseRad;
+// ─── 상수 ───────────────────────────────────────────────
+const H_INNER = [254, 254, 255, 230];
+const H_OUTER = [254, 254, 255, 230];
+const M_INNER = [222, 222, 222, 220];
+const M_OUTER = [222, 222, 222, 180];
+const S_INNER = [192, 192, 192, 150];
+const S_OUTER = [192, 192, 192, 110];
 
-const bgColor = [218, 230, 236];
-const sInnerColor = [15, 123, 210, 150];
-const sOuterColor = [37, 74, 176];
-const mInnerColor = [29, 134, 238, 150];
-const mOuterColor = [37, 74, 176];
-const hInnerColor = [14, 58, 179, 150];
-const hOuterColor = [37, 74, 176];
+const ROTATE_SPEED = 0.001;
+const HOUR_BLINK = 100;
+const MINUTE_BLINK = 100;
+const SECOND_BLINK = 50;
 
-let prevSecond = -1;
-let secondStartTime = 0;
-let prevMinute = -1;
-let minuteStartTime = 0;
-let prevHour = -1;
-let hourStartTime = 0;
+const SCALE_MIN = 0.98;
+const SCALE_SPEED = 0.12;
 
-function setup() {
+// ─── 전역 상태 ──────────────────────────────────────────
+let baseRad, img;
+
+let prevH = -1,
+  hourStart = 0;
+let prevM = -1,
+  minuteStart = 0;
+let prevS = -1,
+  secondStart = 0;
+
+let scaleVal = 1;
+let scaleTarget = 1;
+
+const hTxt = [];
+const mTxt = [];
+const sTxt = [];
+
+// ─── 셋업 ────────────────────────────────────────────────
+async function setup() {
   createCanvas(windowWidth, windowHeight);
+  img = await loadImage('img8.png');
   angleMode(DEGREES);
-  textSize(fontSize);
   textAlign(CENTER, CENTER);
   updateRadiusValues();
 }
@@ -34,217 +46,198 @@ function windowResized() {
 }
 
 function updateRadiusValues() {
-  const minDimension = min(windowWidth, windowHeight) * 0.04;
-  radius = minDimension;
-  baseRad = minDimension;
+  baseRad = min(windowWidth, windowHeight) * 0.04;
 }
 
+function mousePressed() {
+  scaleTarget = SCALE_MIN;
+}
+
+// ─── 메인 루프 ───────────────────────────────────────────
 function draw() {
-  background(...bgColor);
+  push();
+  resetMatrix();
+  const ratio = max(windowWidth / img.width, windowHeight / img.height);
+  const iw = img.width * ratio;
+  const ih = img.height * ratio;
+  image(img, (windowWidth - iw) * 0.5, (windowHeight - ih) * 0.5, iw, ih);
+  pop();
 
-  // 시간 값 캐싱
-  const currentHour = hour();
-  const currentMinute = minute();
-  const currentSecond = second();
-  const currentMillis = millis();
+  const now = millis();
+  const curH = hour();
+  const curM = minute();
+  const curS = second();
 
-  if (currentHour !== prevHour) {
-    hourStartTime = currentMillis;
-    prevHour = currentHour;
+  if (curH !== prevH) {
+    hourStart = now;
+    prevH = curH;
+  }
+  if (curM !== prevM) {
+    minuteStart = now;
+    prevM = curM;
+  }
+  if (curS !== prevS) {
+    secondStart = now;
+    prevS = curS;
   }
 
-  if (currentMinute !== prevMinute) {
-    minuteStartTime = currentMillis;
-    prevMinute = currentMinute;
-  }
-
-  if (currentSecond !== prevSecond) {
-    secondStartTime = currentMillis;
-    prevSecond = currentSecond;
-  }
-
-  h = String(currentHour > 12 ? currentHour - 12 : currentHour);
-  m = String(currentMinute);
-  s = String(currentSecond);
-
-  // 배열 생성 최적화
-  hArr = [...h, ""];
-  mArr = [...m, "", ""];
-  sArr = [...s, ""];
-
-  hTxt = [...h, " ", "H", "O", "U", "R"];
-  mTxt = [...m, " ", "M", "I", "N", "U", "T", "E"];
-  sTxt = [...s, " ", "S", "E", "C", "O", "N", "D"];
+  fillLabel(hTxt, String(curH > 12 ? curH - 12 : curH), 'HOUR');
+  fillLabel(mTxt, String(curM), 'MINUTE');
+  fillLabel(sTxt, String(curS), 'SECOND');
 
   translate(windowWidth * 0.5, windowHeight * 0.5);
 
+  // 스케일 보간
+  scaleVal += (scaleTarget - scaleVal) * SCALE_SPEED;
+  scale(scaleVal);
+  if (scaleTarget < 1 && abs(scaleVal - scaleTarget) < 0.001) {
+    scaleTarget = 1;
+  }
+
+  const hourMod = curH % 12;
+  const minuteMod = curM % 10;
+  const secondMod = curS % 10;
+
+  let fontSize = 6;
   let rad = baseRad;
-  const secondMod = currentSecond % 10;
-  const minuteMod = currentMinute % 10;
-  const hourMod = currentHour % 12;
-  fontSize = 6;
 
-  // 시 단위 안쪽 - 원으로 표시
-  fill(hInnerColor);
-  noStroke();
+  // ── 시 링 ───────────────────────────────────────────
+  [rad, fontSize] = drawRings(
+    rad,
+    fontSize,
+    hourMod,
+    H_INNER,
+    now - hourStart,
+    HOUR_BLINK,
+    1,
+    0.5,
+    1,
+    1,
+    now,
+  );
 
-  const timeInHour = currentMillis - hourStartTime;
-  const hourDuration = 100;
-
-  for (let i = 0; i < hourMod; i++) {
-    fontSize += 1;
-    const circleSize = fontSize * 0.8;
-
-    const startTime = i * hourDuration;
-    const endTime = (i + 1) * hourDuration;
-
-    let alpha;
-    if (timeInHour >= startTime && timeInHour < endTime) {
-      alpha = 0.8 * 255; // 완전 투명
-    } else {
-      alpha = mInnerColor[3]; // 원래 알파값
-    }
-
-    fill(hInnerColor[0], hInnerColor[1], hInnerColor[2], alpha);
-
-    push();
-    rotate(currentMillis * 0.001);
-    makeCircles(rad, circleSize, hArr.length);
-    pop();
-    rad += fontSize + 1;
-  }
-
-  // 시 단위 바깥 문자
-  rad += fontSize * 0.25;
-  fill(hOuterColor);
-  textSize(fontSize + 5);
+  rad += fontSize * 0.3;
+  fill(...H_OUTER);
+  textSize(fontSize + 3.5);
   textStyle(BOLD);
   push();
-  rotate(currentMillis * 0.001);
-  makeWaves(rad, hTxt);
+  rotate(now * ROTATE_SPEED);
+  makeWaves(rad, hTxt, 1);
   pop();
 
-  // 분 단위 안쪽 - 원으로 표시
-  rad += baseRad / 2 + fontSize;
-  fill(mInnerColor);
-  noStroke();
+  // ── 분 링 ───────────────────────────────────────────
+  rad += baseRad / 2 + fontSize + 1;
+  [rad, fontSize] = drawRings(
+    rad,
+    fontSize,
+    minuteMod,
+    M_INNER,
+    now - minuteStart,
+    MINUTE_BLINK,
+    1,
+    0.8,
+    4,
+    -1,
+    now,
+  );
 
-  const timeInMinute = currentMillis - minuteStartTime;
-  const minuteDuration = 100;
-
-  for (let i = 0; i < minuteMod; i++) {
-    fontSize++;
-    const circleSize = fontSize * 0.8;
-
-    const startTime = i * minuteDuration;
-    const endTime = (i + 1) * minuteDuration;
-
-    let alpha;
-    if (timeInMinute >= startTime && timeInMinute < endTime) {
-      alpha = 0.8 * 255; // 완전 투명
-    } else {
-      alpha = mInnerColor[3]; // 원래 알파값
-    }
-
-    fill(mInnerColor[0], mInnerColor[1], mInnerColor[2], alpha);
-
-    push();
-    rotate(currentMillis * -0.001);
-    makeCircles(rad, circleSize, mArr.length);
-    pop();
-    rad += fontSize + 1;
-  }
-
-  // 분 단위 바깥 문자
-  rad += fontSize * 0.8;
-  fill(mOuterColor);
-  textSize(fontSize + 16);
+  rad += fontSize * 0.8 + 2;
+  fill(...M_OUTER);
+  textSize(fontSize + 8);
   textStyle(BOLD);
   push();
-  rotate(currentMillis * -0.001);
-  makeWaves(rad, mTxt);
+  rotate(now * -ROTATE_SPEED);
+  makeWaves(rad, mTxt, 1);
   pop();
 
-  // 초 단위 안쪽 - 원으로 표시 (애니메이션 적용)
+  // ── 초 링 ───────────────────────────────────────────
   rad += baseRad + fontSize;
   fontSize += 4;
-  noStroke();
-  for (let i = 0; i < secondMod; i++) {
-    fontSize += 2.15;
-    const circleSize = fontSize * 0.8;
+  [rad, fontSize] = drawRings(
+    rad,
+    fontSize,
+    secondMod,
+    S_INNER,
+    now - secondStart,
+    SECOND_BLINK,
+    2.15,
+    0.78,
+    5,
+    1,
+    now,
+  );
 
-    const duration = 50;
-    const startTime = i * duration;
-    const endTime = (i + 1) * duration;
-    const timeInSecond = currentMillis - secondStartTime;
-
-    let alpha;
-    if (timeInSecond >= startTime && timeInSecond < endTime) {
-      alpha = 0.8 * 255;
-    } else {
-      alpha = sInnerColor[3]; // 원래 알파값
-    }
-
-    fill(sInnerColor[0], sInnerColor[1], sInnerColor[2], alpha);
-    push();
-    rotate(currentMillis * 0.001);
-    makeCircles(rad, circleSize, sArr.length);
-    pop();
-    rad += fontSize + 1;
-  }
-
-  // 초 단위 바깥 문자
-  rad += fontSize * 1.5;
-  fill(sOuterColor);
-  textSize(fontSize + 30);
+  rad += fontSize * 0.5;
+  fill(...S_OUTER);
+  textSize(fontSize + 12);
   textStyle(BOLD);
   push();
-  rotate(currentMillis * 0.001);
-  makeWaves(rad, sTxt);
+  rotate(now * ROTATE_SPEED);
+  makeWaves(rad, sTxt, 0.9);
   pop();
 }
 
-// 원을 원형으로 배치하는 함수
-function makeCircles(rad, circleSize, patternLength) {
-  const spacing = circleSize * 1.5;
-  const circleLength = TWO_PI * rad;
-
-  // 패턴 한 세트의 간격
-  const patternSpacing = spacing * patternLength;
-  const patternCount = floor(circleLength / patternSpacing);
-  const rotatePatternAng = 360 / patternCount;
-
-  for (let i = 0; i < patternCount; i++) {
-    push();
-    rotate(i * rotatePatternAng);
-
-    for (let j = 0; j < patternLength; j++) {
-      push();
-      const angle = ((j * spacing) / rad) * (180 / PI);
-      rotate(angle);
-      ellipse(0, -rad, circleSize, circleSize);
-      pop();
-    }
-    pop();
-  }
+// ─── 레이블 배열 채우기 ──────────────────────────────────
+function fillLabel(arr, numStr, label) {
+  let i = 0;
+  for (const c of numStr) arr[i++] = c;
+  arr[i++] = '';
+  for (const c of label) arr[i++] = c;
+  arr.length = i;
 }
 
-// 텍스트를 원형으로 배치하는 함수
-function makeWaves(rad, arr, gapRatio = 0.8) {
-  const txtW = textWidth("...");
-  const txtGap = txtW * gapRatio;
-  const circleLength = TWO_PI * rad;
-  const txtDumpCount = floor(circleLength / (txtGap * arr.length));
-  const rotateDumpAng = 360 / txtDumpCount;
-  const rotateAng = 360 / floor(circleLength / txtGap);
-  const arrLength = arr.length;
+// ─── 링 그리기 ───────────────────────────────────────────
+// fsStep      : fontSize 증가량 (시·분=1, 초=2.15)
+// strokeRatio : strokeWeight 계수 (시=0.5, 분=0.8, 초=0.8)
+// gap         : 링 사이 추가 간격 (시=1, 분=4, 초=5)
+// rotDir      : 회전 방향 (1 또는 -1)
+function drawRings(
+  rad,
+  fontSize,
+  count,
+  color,
+  elapsed,
+  blinkDur,
+  fsStep,
+  strokeRatio,
+  gap,
+  rotDir,
+  now,
+) {
+  noFill();
+  for (let i = 0; i < count; i++) {
+    fontSize += fsStep;
+    const strokeW = fontSize * strokeRatio;
+    const alpha =
+      elapsed >= i * blinkDur && elapsed < (i + 1) * blinkDur ? 204 : color[3];
 
-  for (let i = 0; i < txtDumpCount; i++) {
     push();
-    rotate(i * rotateDumpAng);
-    for (let j = 0; j < arrLength; j++) {
+    rotate(now * ROTATE_SPEED * rotDir);
+    stroke(color[0], color[1], color[2], alpha);
+    strokeWeight(strokeW);
+    circle(0, 0, rad * 2);
+    pop();
+
+    rad += fontSize + gap;
+  }
+  return [rad, fontSize];
+}
+
+// ─── 텍스트를 원형으로 배치 ──────────────────────────────
+function makeWaves(rad, arr, gapRatio = 0.8) {
+  const txtGap = textWidth('...') * gapRatio;
+  const circLen = TWO_PI * rad;
+  const arrLen = arr.length;
+  const dumpCount = floor(circLen / (txtGap * arrLen));
+  const dumpAng = 360 / dumpCount;
+  const charAng = 360 / floor(circLen / txtGap);
+
+  for (let i = 0; i < dumpCount; i++) {
+    push();
+    rotate(i * dumpAng);
+    for (let j = 0; j < arrLen; j++) {
       push();
-      rotate(j * rotateAng);
+      rotate(j * charAng);
       text(arr[j], 0, -rad);
       pop();
     }
